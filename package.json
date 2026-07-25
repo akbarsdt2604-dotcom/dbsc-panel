@@ -1,0 +1,6 @@
+{
+  "name": "dbsc-access-control",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web admin/customer untuk kelola database nomor akses script Topifyverse via GitHub"
+}
