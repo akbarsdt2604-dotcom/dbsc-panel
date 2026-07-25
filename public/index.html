@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Access Control · dbsc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e13; --panel:#11161d; --panel-2:#151b23;
+    --border:#232b36; --border-soft:#1a212a;
+    --text:#e7ecf2; --muted:#7c8798; --muted-2:#525d6c;
+    --accent:#33d6a6; --accent-dim:#1f7a5c;
+    --danger:#ff5d5d; --danger-dim:#5c2323; --amber:#e8b74f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #10221d 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, #1a1420 0%, transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;
+  }
+
+  #gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .gate-box{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px 28px;text-align:center;}
+  .gate-lock{width:44px;height:44px;border-radius:12px;background:rgba(51,214,166,.1);border:1px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+  .gate-box h2{font-family:'JetBrains Mono',monospace;font-size:16px;margin:0 0 6px;}
+  .gate-box p{color:var(--muted);font-size:12.5px;margin:0 0 20px;}
+  .gate-box input{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;text-align:center;letter-spacing:.05em;margin-bottom:12px;}
+  .gate-box input:focus{border-color:var(--accent-dim);}
+  .gate-box button{width:100%;background:var(--accent);color:#052018;border:none;border-radius:9px;padding:12px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;cursor:pointer;}
+  .gate-box button:hover{background:#4ee6b8;}
+  .gate-box button:disabled{background:var(--border);color:var(--muted-2);cursor:not-allowed;}
+  .gate-err{color:var(--danger);font-size:12px;margin-top:12px;min-height:14px;font-family:'JetBrains Mono',monospace;}
+
+  #app{display:none;padding:40px 20px 80px;}
+  .wrap{max-width:760px;margin:0 auto;}
+
+  .hdr{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:6px;flex-wrap:wrap;}
+  .hdr-left{display:flex;align-items:center;gap:12px;}
+  h1{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:19px;letter-spacing:-.02em;margin:0;}
+  h1 span{color:var(--muted);font-weight:500;}
+  .role-badge{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.05em;}
+  .role-badge.admin{background:rgba(51,214,166,.12);color:var(--accent);border:1px solid var(--accent-dim);}
+  .role-badge.customer{background:rgba(232,183,79,.12);color:var(--amber);border:1px solid #6b5426;}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 28px;line-height:1.5;}
+
+  .stats{display:flex;gap:12px;margin-bottom:18px;}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+  .stat .n{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--text);}
+  .stat .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;}
+  .search-box{flex:1;position:relative;}
+  .search-box input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px 12px 38px;font-family:'JetBrains Mono',monospace;font-size:13.5px;outline:none;}
+  .search-box input:focus{border-color:var(--accent-dim);}
+  .search-box svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.4;}
+
+  .list{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .list-empty{padding:50px 20px;text-align:center;color:var(--muted-2);font-size:13.5px;}
+  .list-empty b{display:block;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:14px;margin-bottom:6px;}
+  .item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border-soft);}
+  .item:last-child{border-bottom:none;}
+  .item:hover{background:var(--panel-2);}
+  .item-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--accent);background:rgba(51,214,166,.1);border:1px solid var(--accent-dim);padding:2px 6px;border-radius:5px;flex:none;letter-spacing:.04em;}
+  .num{font-family:'JetBrains Mono',monospace;font-size:14.5px;font-variant-numeric:tabular-nums;}
+  .num mark{background:rgba(232,183,79,.28);color:var(--amber);border-radius:3px;padding:0 1px;}
+
+  .btn{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;border-radius:8px;padding:10px 16px;border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .btn-primary{background:var(--accent);color:#052018;}
+  .btn-primary:hover{background:#4ee6b8;}
+  .btn-primary:disabled{background:var(--border);color:var(--muted-2);cursor:not-allowed;}
+  .btn-danger{background:transparent;color:var(--danger);border-color:var(--danger-dim);font-size:11.5px;padding:6px 10px;}
+  .btn-danger:hover{background:rgba(255,93,93,.08);}
+
+  .addbar{display:flex;gap:10px;padding:14px 16px;background:var(--panel-2);border-top:1px solid var(--border);}
+  .addbar input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:13.5px;outline:none;}
+  .addbar input:focus{border-color:var(--accent-dim);}
+
+  .status-line{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;padding:9px 12px;border-radius:8px;margin-bottom:14px;}
+  .status-line.err{background:rgba(255,93,93,.08);color:var(--danger);border:1px solid var(--danger-dim);}
+  .status-line.ok{background:rgba(51,214,166,.08);color:var(--accent);border:1px solid var(--accent-dim);}
+
+  ::placeholder{color:var(--muted-2);}
+  .spin{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (max-width:560px){.stats{flex-direction:column;}}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-lock">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#33d6a6" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    </div>
+    <h2>Access Control</h2>
+    <p>Masukkan password kamu</p>
+    <input type="password" id="gatePw" placeholder="••••••••" autocomplete="off">
+    <button id="gateBtn">Masuk</button>
+    <div class="gate-err" id="gateErr"></div>
+  </div>
+</div>
+
+<div id="app">
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>access-control <span>/ dbsc</span></h1>
+      <span class="role-badge" id="roleBadge"></span>
+    </div>
+  </div>
+  <p class="sub" id="subText">Kelola daftar nomor yang diizinkan memakai script.</p>
+
+  <div id="statusLine"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Total nomor</div></div>
+    <div class="stat"><div class="n" id="statShown">0</div><div class="l">Ditampilkan</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="fSearch" placeholder="Cari nomor…">
+    </div>
+  </div>
+
+  <div class="list">
+    <div id="listBody"></div>
+    <div class="addbar">
+      <input id="fAddNum" placeholder="Tambah nomor baru (mis. 6281234567890)" spellcheck="false">
+      <button class="btn btn-primary" id="btnAdd">Tambah</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let PASSWORD = '';
+  let ROLE = '';
+  let numbers = [];
+
+  function setStatus(msg, type){
+    $('statusLine').innerHTML = msg ? `<div class="status-line ${type}">${msg}</div>` : '';
+  }
+
+  async function api(path, body){
+    const res = await fetch('/api/' + path, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ password: PASSWORD, ...body })
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    return data;
+  }
+
+  async function tryGate(){
+    const pw = $('gatePw').value;
+    if(!pw) return;
+    $('gateBtn').disabled = true;
+    $('gateBtn').textContent = 'Memeriksa…';
+    try{
+      PASSWORD = pw;
+      const data = await api('search', { query: '' });
+      ROLE = data.role;
+      numbers = data.numbers;
+      $('gate').style.display = 'none';
+      $('app').style.display = 'block';
+      applyRole();
+      renderStats(data.total, data.count);
+      renderList('');
+    } catch(err){
+      $('gateErr').textContent = err.message === 'Password salah.' ? 'Password salah.' : err.message;
+      PASSWORD = '';
+    } finally {
+      $('gateBtn').disabled = false;
+      $('gateBtn').textContent = 'Masuk';
+    }
+  }
+  $('gateBtn').addEventListener('click', tryGate);
+  $('gatePw').addEventListener('keydown', e => { if(e.key==='Enter') tryGate(); });
+
+  function applyRole(){
+    const badge = $('roleBadge');
+    if(ROLE === 'admin'){
+      badge.textContent = 'ADMIN';
+      badge.className = 'role-badge admin';
+      $('subText').textContent = 'Kamu bisa mencari, menambah, dan menghapus nomor.';
+    } else {
+      badge.textContent = 'CUSTOMER';
+      badge.className = 'role-badge customer';
+      $('subText').textContent = 'Kamu bisa mencari dan menambah nomor kamu sendiri.';
+    }
+  }
+
+  function renderStats(total, shown){
+    $('statTotal').textContent = total;
+    $('statShown').textContent = shown;
+  }
+
+  function highlight(text, q){
+    if(!q) return text;
+    const i = text.indexOf(q);
+    if(i === -1) return text;
+    return text.slice(0,i) + '<mark>' + text.slice(i,i+q.length) + '</mark>' + text.slice(i+q.length);
+  }
+
+  function renderList(q){
+    const listBody = $('listBody');
+    const filtered = q ? numbers.filter(n => n.includes(q)) : numbers;
+    renderStats(numbers.length, filtered.length);
+
+    if(filtered.length === 0){
+      listBody.innerHTML = `<div class="list-empty"><b>${numbers.length===0 ? 'Database masih kosong' : 'Tidak ketemu'}</b>${numbers.length===0 ? 'Tambahkan nomor pertama lewat kolom di bawah.' : 'Coba kata kunci lain.'}</div>`;
+      return;
+    }
+    listBody.innerHTML = '';
+    filtered.forEach(num => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `
+        <div class="item-left">
+          <span class="badge">AKTIF</span>
+          <span class="num">${highlight(num, q)}</span>
+        </div>
+        ${ROLE === 'admin' ? '<button class="btn btn-danger">Hapus</button>' : ''}
+      `;
+      if(ROLE === 'admin'){
+        row.querySelector('button').addEventListener('click', (e) => deleteNumber(num, e.target));
+      }
+      listBody.appendChild(row);
+    });
+  }
+
+  async function refreshFromServer(){
+    const full = await api('search', { query: '' });
+    numbers = full.numbers;
+    renderList($('fSearch').value.replace(/[^0-9]/g,''));
+  }
+
+  async function addNumber(){
+    const num = $('fAddNum').value.replace(/[^0-9]/g,'');
+    if(!num){ setStatus('Masukkan nomor yang valid.', 'err'); return; }
+    $('btnAdd').disabled = true; $('btnAdd').textContent = 'Menyimpan…';
+    try{
+      await api('add', { number: num });
+      $('fAddNum').value = '';
+      setStatus(`Nomor ${num} berhasil ditambahkan.`, 'ok');
+      await refreshFromServer();
+    } catch(err){
+      setStatus(err.message, 'err');
+    } finally {
+      $('btnAdd').disabled = false; $('btnAdd').textContent = 'Tambah';
+    }
+  }
+
+  async function deleteNumber(num, btnEl){
+    if(!confirm(`Hapus nomor ${num} dari database akses?`)) return;
+    btnEl.disabled = true; btnEl.textContent = '…';
+    try{
+      await api('delete', { number: num });
+      setStatus(`Nomor ${num} berhasil dihapus.`, 'ok');
+      await refreshFromServer();
+    } catch(err){
+      setStatus(err.message, 'err');
+      btnEl.disabled = false; btnEl.textContent = 'Hapus';
+    }
+  }
+
+  $('btnAdd').addEventListener('click', addNumber);
+  $('fAddNum').addEventListener('keydown', e => { if(e.key==='Enter') addNumber(); });
+  $('fSearch').addEventListener('input', () => renderList($('fSearch').value.replace(/[^0-9]/g,'')));
+
+})();
+</script>
+</body>
+</html>
